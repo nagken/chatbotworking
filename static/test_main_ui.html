@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Chat Test - CVS Pharmacy Knowledge Assist</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        button {
+            background: #c41e3a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #a71c2e;
+        }
+        .iframe-container {
+            margin-top: 20px;
+            border: 2px solid #c41e3a;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+        .instructions {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 CVS Pharmacy Chat Test</h1>
+        
+        <div class="instructions">
+            <h3>📋 Test Instructions:</h3>
+            <ol>
+                <li><strong>Login:</strong> Use any CVS email (e.g., john.smith@cvshealth.com) with password "password123"</li>
+                <li><strong>Test Query:</strong> Ask "What is contraceptive coverage?" to trigger document search</li>
+                <li><strong>Expected Result:</strong> Should show "Related Documents Found" section with PDF results</li>
+                <li><strong>Check Browser Console:</strong> Look for debug messages about document rendering</li>
+            </ol>
+        </div>
+        
+        <div class="test-section">
+            <h3>🚀 Quick Actions</h3>
+            <button onclick="openMainUI()">Open Main Chat UI</button>
+            <button onclick="openDebugTool()">Open Debug Tool (Working)</button>
+            <button onclick="openConsole()">Open Browser Console</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Test Status</h3>
+            <div id="testStatus">
+                <p>✅ <strong>Backend Streaming:</strong> Working (confirmed via debug tool)</p>
+                <p>✅ <strong>PDF Search:</strong> Working (finds 3+ documents)</p>
+                <p>❓ <strong>Main UI Display:</strong> Testing required</p>
+                <p>❓ <strong>Non-streaming Endpoint:</strong> Fixed (needs verification)</p>
+            </div>
+        </div>
+        
+        <div id="iframeContainer" class="iframe-container" style="display: none;">
+            <iframe id="testFrame" src=""></iframe>
+        </div>
+    </div>
+
+    <script>
+        function openMainUI() {
+            document.getElementById('testFrame').src = 'http://localhost:8000/static/index.html';
+            document.getElementById('iframeContainer').style.display = 'block';
+            updateStatus('Main UI loaded - test the chat now!');
+        }
+        
+        function openDebugTool() {
+            document.getElementById('testFrame').src = 'http://localhost:8000/static/chat_debug.html';
+            document.getElementById('iframeContainer').style.display = 'block';
+            updateStatus('Debug tool loaded - compare results with main UI');
+        }
+        
+        function openConsole() {
+            alert('Press F12 to open Developer Tools, then go to Console tab to see debug messages');
+        }
+        
+        function updateStatus(message) {
+            const status = document.getElementById('testStatus');
+            const timestamp = new Date().toLocaleTimeString();
+            status.innerHTML += `<p style="color: #007bff;">[${timestamp}] ${message}</p>`;
+        }
+        
+        // Auto-open main UI on load
+        setTimeout(() => {
+            openMainUI();
+        }, 1000);
+    </script>
+</body>
+</html>

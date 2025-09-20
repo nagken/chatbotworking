@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Markdown Conversion</title>
+    <style>
+        .related-documents-section {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .related-documents-section h4 {
+            color: #007bff;
+            margin: 0 0 10px 0;
+        }
+        .document-item {
+            background-color: white;
+            border: 1px solid #e3e6ea;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .document-item h5 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        .relevance-score {
+            color: #6c757d;
+            font-weight: normal;
+        }
+        .document-preview {
+            margin: 5px 0;
+            font-style: italic;
+            color: #495057;
+        }
+        .document-path {
+            margin: 5px 0 0 0;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Document Markdown Conversion</h1>
+    
+    <div id="original-content">
+        <h3>Original Content:</h3>
+        <pre id="original-text"></pre>
+    </div>
+    
+    <div id="converted-content">
+        <h3>Converted HTML:</h3>
+        <div id="converted-html"></div>
+    </div>
+    
+    <div id="raw-html">
+        <h3>Raw HTML Output:</h3>
+        <pre id="raw-html-content"></pre>
+    </div>
+
+    <script>
+        // Simulate the markdown conversion function from message-renderer.js
+        function convertMarkdownToHtml(text) {
+            if (!text) return '';
+            
+            // DEBUG: Log the original text to see exact format
+            console.log('🔍 Converting markdown text:', text.substring(0, 300));
+            
+            // FIRST: Handle document-specific patterns BEFORE converting line breaks
+            // Enhanced: Handle "Related Documents Found:" section with special styling
+            text = text.replace(/📚 \*\*Related Documents Found:\*\*/g, '<div class="related-documents-section"><h4>📚 Related Documents Found:</h4>');
+            
+            // Enhanced: Better numbered list handling for documents (more flexible pattern)
+            text = text.replace(/^\*\*(\d+)\.\s*([^*]+)\*\*\s*\(Relevance:\s*([\d.]+)\)/gm, '<div class="document-item"><h5><strong>$1. $2</strong> <span class="relevance-score">(Relevance: $3)</span></h5>');
+            
+            // Enhanced: Handle preview text (more flexible)
+            text = text.replace(/^\*Preview:\*\s*"([^"]+)"/gm, '<p class="document-preview"><em>Preview:</em> "$1"</p>');
+            
+            // Enhanced: Handle file paths (more flexible)
+            text = text.replace(/^📁\s*\*Path:\*\s*(.+)$/gm, '<p class="document-path">📁 <em>Path:</em> $1</p></div>');
+            
+            // THEN: Convert general markdown patterns
+            // Convert **bold** to <strong> (but avoid already processed ones)
+            text = text.replace(/\*\*([^<]*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Convert *italic* to <em> (but avoid already processed ones)
+            text = text.replace(/\*([^<]*?)\*/g, '<em>$1</em>');
+            
+            // Convert numbered lists (fallback for other lists)
+            text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+            
+            // Wrap consecutive <li> elements in <ol>
+            text = text.replace(/(<li>.*<\/li>)/gs, '<ol>$1</ol>');
+            
+            // Convert bullet points  
+            text = text.replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>');
+            
+            // Convert URLs to links
+            text = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+            
+            // FINALLY: Convert line breaks to <br> (after all multiline patterns are processed)
+            text = text.replace(/\n/g, '<br>');
+            
+            // Close the related documents section if it was opened
+            if (text.includes('related-documents-section')) {
+                text += '</div>';
+            }
+            
+            // DEBUG: Log the final converted HTML
+            if (text.includes('Related Documents')) {
+                console.log('🔍 Final converted HTML:', text.substring(0, 500));
+            }
+            
+            return text;
+        }
+
+        // Test content exactly as the backend sends it
+        const testContent = `Based on your CVS Pharmacy documents, I found specific information about contraceptive coverage. The key document 'GEN 6925 What You Need to Know About CIFs in theSource v 8.3 07312025.docx' provides detailed guidance on coverage policies and procedures for contraceptive medications and services.
+
+📚 **Related Documents Found:**
+
+**1. GEN 6925 What You Need to Know About CIFs in theSource v 8.3 07312025.docx** (Relevance: 5.00)
+*Preview:* "contraceptive coverage CIF (Customer Information Form) requirements and guidelines for pharmacy benefits..."
+📁 *Path:* GyaniNuxeo/GEN 6925 What You Need to Know About CIFs in theSource v 8.3 07312025.docx
+
+**2. _CLIENT SUPPORT- MEMBER SERVICES St Joseph's Women's Contraceptive Coverage.docx** (Relevance: 4.50)
+*Preview:* "women's contraceptive coverage benefits member services support documentation and guidelines..."
+📁 *Path:* GyaniNuxeo/_CLIENT SUPPORT- MEMBER SERVICES St Joseph's Women's Contraceptive Coverage.docx
+
+**3. 005083 - Y0001_NR_29635_SP_2024_C.docx** (Relevance: 4.20)
+*Preview:* "Medicare coverage details for contraceptive benefits and member eligibility requirements..."
+📁 *Path:* GyaniNuxeo/005083 - Y0001_NR_29635_SP_2024_C.docx
+
+`;
+
+        // Display original content
+        document.getElementById('original-text').textContent = testContent;
+        
+        // Convert and display
+        const convertedHtml = convertMarkdownToHtml(testContent);
+        document.getElementById('converted-html').innerHTML = convertedHtml;
+        document.getElementById('raw-html-content').textContent = convertedHtml;
+        
+        console.log('✅ Test completed');
+        console.log('Original content length:', testContent.length);
+        console.log('Converted HTML length:', convertedHtml.length);
+        console.log('Contains related-documents-section:', convertedHtml.includes('related-documents-section'));
+    </script>
+</body>
+</html>

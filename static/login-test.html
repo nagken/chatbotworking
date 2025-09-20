@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test - PSS Knowledge Assist</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px 20px; margin: 10px 0; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>PSS Knowledge Assist - Login Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Manual Login</h2>
+        <form id="manualTest">
+            <div>
+                <label>Email:</label>
+                <input type="email" id="testEmail" value="admin@pss-knowledge-assist.com" style="width: 300px;">
+            </div>
+            <div>
+                <label>Password:</label>
+                <input type="password" id="testPassword" value="admin123" style="width: 300px;">
+            </div>
+            <button type="submit">Test Login</button>
+        </form>
+        <div id="manualResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: All Credentials</h2>
+        <button onclick="testAllCredentials()">Test All Users</button>
+        <div id="allResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Health Check</h2>
+        <button onclick="testHealth()">Test API Health</button>
+        <div id="healthResult" class="result"></div>
+    </div>
+
+    <script>
+        // Test manual login
+        document.getElementById('manualTest').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            const resultDiv = document.getElementById('manualResult');
+            
+            resultDiv.innerHTML = '<p>Testing login...</p>';
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        remember_me: false
+                    })
+                });
+                
+                const result = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>Manual Login Result:</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Success:</strong> ${result.success}</p>
+                    <p><strong>Message:</strong> ${result.message}</p>
+                    ${result.user ? `<p><strong>User:</strong> ${result.user.username} (${result.user.email})</p>` : ''}
+                    <details>
+                        <summary>Full Response</summary>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </details>
+                `;
+                
+                if (result.success) {
+                    resultDiv.className = 'result success';
+                    
+                    // If login successful, redirect to main page
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    resultDiv.className = 'result error';
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                resultDiv.className = 'result error';
+            }
+        });
+
+        // Test all credentials
+        async function testAllCredentials() {
+            const resultDiv = document.getElementById('allResult');
+            resultDiv.innerHTML = '<p>Testing all credentials...</p>';
+            
+            const credentials = [
+                { email: 'admin@pss-knowledge-assist.com', password: 'admin123' },
+                { email: 'test@pss-knowledge-assist.com', password: 'test1234' },
+                { email: 'demo@pss-knowledge-assist.com', password: 'demo1234' }
+            ];
+            
+            let results = [];
+            
+            for (const cred of credentials) {
+                try {
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: cred.email,
+                            password: cred.password,
+                            remember_me: false
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    results.push({
+                        email: cred.email,
+                        status: response.status,
+                        success: result.success,
+                        message: result.message
+                    });
+                    
+                } catch (error) {
+                    results.push({
+                        email: cred.email,
+                        status: 'ERROR',
+                        success: false,
+                        message: error.message
+                    });
+                }
+            }
+            
+            let html = '<h3>All Credentials Test Results:</h3>';
+            results.forEach(r => {
+                const statusClass = r.success ? 'success' : 'error';
+                html += `<p class="${statusClass}">
+                    <strong>${r.email}:</strong> ${r.success ? '✅ SUCCESS' : '❌ FAILED'} - ${r.message}
+                </p>`;
+            });
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // Test health endpoint
+        async function testHealth() {
+            const resultDiv = document.getElementById('healthResult');
+            resultDiv.innerHTML = '<p>Testing API health...</p>';
+            
+            try {
+                const response = await fetch('/api/health');
+                const result = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>Health Check Result:</h3>
+                    <p class="success">✅ API is responding</p>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ API Health Check Failed: ${error.message}</p>`;
+            }
+        }
+
+        // Auto-run health check on page load
+        window.addEventListener('load', () => {
+            testHealth();
+        });
+    </script>
+</body>
+</html>

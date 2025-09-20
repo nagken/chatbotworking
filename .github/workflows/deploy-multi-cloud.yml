@@ -1,0 +1,108 @@
+name: Deploy to Multiple Cloud Platforms
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Choose deployment platform'
+        required: true
+        default: 'railway'
+        type: choice
+        options:
+        - railway
+        - render
+        - digitalocean
+        - heroku
+
+jobs:
+  deploy-railway:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    if: github.event.inputs.platform == 'railway'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Railway
+      uses: bervProject/railway-deploy@v1.0.0
+      with:
+        railway_token: ${{ secrets.RAILWAY_TOKEN }}
+        service: pss-knowledge-assist
+    
+    - name: Get Railway URL
+      run: |
+        echo "🚂 Railway deployment initiated"
+        echo "📍 Check status at: https://railway.app/dashboard"
+
+  deploy-render:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    if: github.event.inputs.platform == 'render'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Render
+      run: |
+        curl -X POST \
+          -H "Accept: application/json" \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "type": "web_service",
+            "name": "pss-knowledge-assist",
+            "ownerId": "${{ secrets.RENDER_OWNER_ID }}",
+            "repo": "${{ github.repository }}",
+            "branch": "${{ github.ref_name }}",
+            "buildCommand": "docker build -t pss-knowledge-assist .",
+            "startCommand": "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+            "envVars": [
+              {
+                "key": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "key": "ENVIRONMENT", 
+                "value": "production"
+              }
+            ]
+          }' \
+          https://api.render.com/v1/services
+        echo "🎨 Render deployment initiated"
+
+  deploy-digitalocean:
+    name: Deploy to DigitalOcean App Platform
+    runs-on: ubuntu-latest
+    if: github.event.inputs.platform == 'digitalocean'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to DigitalOcean
+      uses: digitalocean/app_action@v1.1.5
+      with:
+        app_name: pss-knowledge-assist
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+  deploy-heroku:
+    name: Deploy to Heroku
+    runs-on: ubuntu-latest
+    if: github.event.inputs.platform == 'heroku'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Heroku
+      uses: akhileshns/heroku-deploy@v3.12.14
+      with:
+        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+        heroku_app_name: pss-knowledge-assist
+        heroku_email: ${{ secrets.HEROKU_EMAIL }}
+        usedocker: true
+        docker_build_args: |
+          NODE_ENV
+        appdir: "."

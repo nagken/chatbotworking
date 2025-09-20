@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Chat Response</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; background: #c8102e; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 10px 0; }
+        #result { margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; font-family: monospace; white-space: pre-wrap; max-height: 500px; overflow-y: auto; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Chat Response</h1>
+    <button onclick="testChatResponse()">Test Chat Response (Non-Streaming)</button>
+    <button onclick="testStreamingResponse()">Test Streaming Response</button>
+    <div id="result">Click a button to test...</div>
+
+    <script>
+        async function login() {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'demo@cvs-pharmacy-knowledge-assist.com',
+                        password: 'demo1234'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.token) {
+                        return data.token;
+                    }
+                }
+                return null;
+            } catch (error) {
+                console.error('Login error:', error);
+                return null;
+            }
+        }
+        
+        async function testChatResponse() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Testing non-streaming chat response...\n\n';
+            
+            try {
+                // Login first
+                const token = await login();
+                if (!token) {
+                    resultDiv.textContent += 'ERROR: Login failed\n';
+                    return;
+                }
+                
+                resultDiv.textContent += 'Login successful\n\n';
+                
+                // Test chat
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'How do I access a member\'s mail order history?',
+                        conversation_id: 'debug_' + Date.now()
+                    })
+                });
+                
+                resultDiv.textContent += `Chat response status: ${response.status}\n\n`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const responseText = data.assistant_response || '';
+                    
+                    resultDiv.textContent += `Response received!\n`;
+                    resultDiv.textContent += `Length: ${responseText.length} characters\n`;
+                    resultDiv.textContent += `Contains "Related Documents": ${responseText.includes('Related Documents')}\n`;
+                    resultDiv.textContent += `Contains "📚": ${responseText.includes('📚')}\n\n`;
+                    
+                    resultDiv.textContent += 'FULL RESPONSE:\n';
+                    resultDiv.textContent += '=' + '='.repeat(50) + '\n';
+                    resultDiv.textContent += responseText;
+                    resultDiv.textContent += '\n' + '=' + '='.repeat(50);
+                } else {
+                    resultDiv.textContent += `ERROR: ${response.status} - ${await response.text()}`;
+                }
+                
+            } catch (error) {
+                resultDiv.textContent += `ERROR: ${error.message}`;
+            }
+        }
+        
+        async function testStreamingResponse() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Testing streaming chat response...\n\n';
+            
+            try {
+                // Login first
+                const token = await login();
+                if (!token) {
+                    resultDiv.textContent += 'ERROR: Login failed\n';
+                    return;
+                }
+                
+                resultDiv.textContent += 'Login successful\n\n';
+                
+                // Test streaming chat
+                const response = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream'
+                    },
+                    body: JSON.stringify({
+                        message: 'How do I access a member\'s mail order history?',
+                        conversation_id: 'debug_stream_' + Date.now()
+                    })
+                });
+                
+                resultDiv.textContent += `Streaming response status: ${response.status}\n\n`;
+                
+                if (!response.ok) {
+                    resultDiv.textContent += `ERROR: ${response.status} - ${await response.text()}`;
+                    return;
+                }
+                
+                let chunks = [];
+                let chunkCount = 0;
+                let fullContent = '';
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    chunks.push(chunk);
+                    chunkCount++;
+                    
+                    resultDiv.textContent += `Chunk ${chunkCount}: ${chunk}\n`;
+                    
+                    // Try to parse JSON from SSE format
+                    if (chunk.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(chunk.substring(6));
+                            if (data.data && data.data.content) {
+                                fullContent = data.data.content;
+                            }
+                        } catch (e) {
+                            // Not JSON, continue
+                        }
+                    }
+                }
+                
+                resultDiv.textContent += `\n\nSTREAMING SUMMARY:\n`;
+                resultDiv.textContent += `Total chunks: ${chunkCount}\n`;
+                resultDiv.textContent += `Full content length: ${fullContent.length}\n`;
+                resultDiv.textContent += `Contains "Related Documents": ${fullContent.includes('Related Documents')}\n`;
+                resultDiv.textContent += `Contains "📚": ${fullContent.includes('📚')}\n\n`;
+                
+                if (fullContent) {
+                    resultDiv.textContent += 'FINAL CONTENT:\n';
+                    resultDiv.textContent += '=' + '='.repeat(50) + '\n';
+                    resultDiv.textContent += fullContent;
+                    resultDiv.textContent += '\n' + '=' + '='.repeat(50);
+                }
+                
+            } catch (error) {
+                resultDiv.textContent += `ERROR: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

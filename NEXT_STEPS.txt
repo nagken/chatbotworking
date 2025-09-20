@@ -1,0 +1,67 @@
+===============================================
+ CVS PHARMACY - NEXT STEPS & TEST URLS
+===============================================
+
+🚀 STEP 1: RESTART SERVER
+========================
+Run this command to restart with the mail order fix:
+
+    .\restart_and_test.bat
+
+Or manually:
+
+    # Stop current server (Ctrl+C in server window)
+    # Then start fresh:
+    python -m uvicorn app.main:app --host 127.0.0.1 --port 8080 --reload
+
+🧪 STEP 2: TEST THE MAIL ORDER FIX
+==================================
+1. Open: http://127.0.0.1:8080/static/index.html
+2. Login: john.smith@cvshealth.com / password123
+3. Ask: "How do I access a member's mail order history?"
+
+🎯 EXPECTED RESULTS:
+- Enhanced response mentioning the specific document found
+- "📚 Related Documents Found" section with document details
+- Server logs showing "🔍 Using mail order history response"
+
+📊 ALTERNATIVE TEST QUERIES:
+- "What is contraceptive coverage?" (should show document results)
+- "How do I add a credit card?" (general response)
+- "Tell me about automatic refills" (should find refill documents)
+
+🌐 ALL TEST URLS
+================
+Main Chat UI:   http://127.0.0.1:8080/static/index.html
+Test Interface: http://127.0.0.1:8080/static/test_main_ui.html  
+Debug Tool:     http://127.0.0.1:8080/static/chat_debug.html
+Health Check:   http://127.0.0.1:8080/api/health
+API Docs:       http://127.0.0.1:8080/docs
+
+🔧 TROUBLESHOOTING
+==================
+If port 8080 is busy, try:
+- http://127.0.0.1:5000/static/index.html
+- http://127.0.0.1:3000/static/index.html
+
+To find which port is running:
+    python find_server.py
+
+📋 WHAT WAS FIXED:
+==================
+✅ Mail order queries now use document-based responses
+✅ Added specific response for "mail order history" 
+✅ Enhanced debug logging to track response selection
+✅ Document results should now appear properly in UI
+✅ Non-streaming endpoint fixed (returns proper JSON)
+
+🎉 SUCCESS CRITERIA:
+====================
+- Mail order question shows enhanced response
+- Document section appears with file names and scores
+- Server logs show "🔍 Using mail order history response"
+- Browser console shows document detection messages
+
+===============================================
+Run: .\restart_and_test.bat to begin testing!
+===============================================

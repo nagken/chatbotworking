@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple PDF Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; background: #c8102e; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        #result { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>PDF Search Test</h1>
+    <button onclick="testPDFSearch()">Test PDF Search</button>
+    <div id="result"></div>
+
+    <script>
+        async function testPDFSearch() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Testing...';
+            
+            try {
+                // Test document search
+                const searchResponse = await fetch('/api/documents/search?query=contraceptive%20coverage');
+                const searchData = await searchResponse.json();
+                
+                let output = `PDF Search Results:\n`;
+                output += `Total: ${searchData.total_results || 0}\n\n`;
+                
+                if (searchData.results && searchData.results.length > 0) {
+                    searchData.results.slice(0, 3).forEach((doc, i) => {
+                        output += `${i+1}. ${doc.filename}\n`;
+                        output += `   Score: ${doc.relevance_score}\n`;
+                        output += `   Snippet: ${doc.snippet?.substring(0, 100)}...\n\n`;
+                    });
+                }
+                
+                // Test chat
+                output += `\n${'='.repeat(50)}\n\nChat Test:\n`;
+                
+                const chatResponse = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: 'What is contraceptive coverage?',
+                        conversation_id: 'test_' + Date.now()
+                    })
+                });
+                
+                if (chatResponse.ok) {
+                    const chatData = await chatResponse.json();
+                    output += `Status: SUCCESS\n`;
+                    output += `Response includes "Related Documents": ${chatData.assistant_response?.includes('Related Documents') ? 'YES' : 'NO'}\n`;
+                    output += `Response preview:\n${chatData.assistant_response?.substring(0, 300)}...\n`;
+                } else {
+                    output += `Chat failed: ${chatResponse.status}\n`;
+                }
+                
+                resultDiv.textContent = output;
+                
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

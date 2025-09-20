@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Search Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; background: #c8102e; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        #result { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap; max-height: 500px; overflow-y: auto; font-family: monospace; }
+        .success { color: green; }
+        .error { color: red; }
+        .highlight { background-color: yellow; font-weight: bold; }
+        #loginStatus { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .login-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .login-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>CVS Pharmacy Document Search Test</h1>
+    
+    <div id="loginStatus">Checking authentication...</div>
+    
+    <button onclick="login()">Login First</button>
+    <button onclick="testDirectDocumentSearch()">Test Document Search API</button>
+    <button onclick="testChatWithDocuments()">Test Chat with Mail Order Query</button>
+    <button onclick="testStreamingChat()">Test Streaming Chat</button>
+    <div id="result"></div>
+
+    <script>
+        let sessionToken = null;
+        
+        // Check authentication status on page load
+        window.onload = function() {
+            checkAuthStatus();
+        };
+        
+        function checkAuthStatus() {
+            // Check if we have a session token from cookies
+            const cookies = document.cookie.split(';');
+            let token = null;
+            
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'session_token') {
+                    token = value;
+                    break;
+                }
+            }
+            
+            const statusDiv = document.getElementById('loginStatus');
+            if (token) {
+                sessionToken = token;
+                statusDiv.innerHTML = `<span class="login-success">✅ Authenticated (Token: ${token.substring(0, 20)}...)</span>`;
+            } else {
+                statusDiv.innerHTML = `<span class="login-error">❌ Not authenticated. Please login first.</span>`;
+            }
+        }
+        
+        async function login() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Attempting login...';
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'demo@cvs-pharmacy-knowledge-assist.com',
+                        password: 'demo1234'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.token) {
+                        sessionToken = data.token;
+                        resultDiv.innerHTML = `<span class="success">✅ Login successful! Token: ${sessionToken.substring(0, 20)}...</span>`;
+                        checkAuthStatus();
+                    } else {
+                        resultDiv.innerHTML = `<span class="error">❌ Login failed: ${data.message}</span>`;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Login request failed: ${response.status}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Login error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testDirectDocumentSearch() {
+            if (!sessionToken) {
+                document.getElementById('result').innerHTML = '<span class="error">❌ Please login first</span>';
+                return;
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Testing document search API...';
+            
+            try {
+                const response = await fetch('/api/documents/search?query=mail order history', {
+                    method: 'GET',
+                    headers: { 
+                        'Authorization': `Bearer ${sessionToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    let output = `✅ Document Search API Response:\\n\\n`;
+                    output += `Total Results: ${data.results?.length || 0}\\n\\n`;
+                    
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach((doc, index) => {
+                            output += `Document ${index + 1}:\\n`;
+                            output += `  📄 Filename: ${doc.filename}\\n`;
+                            output += `  🔥 Score: ${doc.relevance_score}\\n`;
+                            output += `  📝 Snippet: ${doc.snippet?.substring(0, 200)}...\\n`;
+                            output += `  📁 Path: ${doc.file_path}\\n\\n`;
+                        });
+                    }
+                    
+                    resultDiv.innerHTML = `<span class="success">${output}</span>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Document search failed: ${response.status}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Document search error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testChatWithDocuments() {
+            if (!sessionToken) {
+                document.getElementById('result').innerHTML = '<span class="error">❌ Please login first</span>';
+                return;
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Testing chat with mail order query...';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${sessionToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'How do I access a member\'s mail order history?',
+                        conversation_id: 'test_' + Date.now()
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    let output = `✅ Chat API Response:\\n\\n`;
+                    output += `Assistant Response:\\n${data.assistant_response}\\n\\n`;
+                    
+                    // Check for document content
+                    const hasRelatedDocs = data.assistant_response?.includes('Related Documents');
+                    const hasDocEmoji = data.assistant_response?.includes('📚');
+                    const hasMailOrder = data.assistant_response?.toLowerCase().includes('mail order');
+                    
+                    output += `Analysis:\\n`;
+                    output += `  📚 Contains "Related Documents": ${hasRelatedDocs ? '✅ YES' : '❌ NO'}\\n`;
+                    output += `  📄 Contains document emoji: ${hasDocEmoji ? '✅ YES' : '❌ NO'}\\n`;
+                    output += `  📦 Contains "mail order": ${hasMailOrder ? '✅ YES' : '❌ NO'}\\n`;
+                    output += `  📏 Response Length: ${data.assistant_response?.length || 0} characters\\n`;
+                    
+                    resultDiv.innerHTML = `<span class="success">${output}</span>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Chat request failed: ${response.status}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Chat error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testStreamingChat() {
+            if (!sessionToken) {
+                document.getElementById('result').innerHTML = '<span class="error">❌ Please login first</span>';
+                return;
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Testing streaming chat...\\n';
+            
+            try {
+                const response = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${sessionToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream'
+                    },
+                    body: JSON.stringify({
+                        message: 'How do I access a member\'s mail order history?',
+                        conversation_id: 'stream_test_' + Date.now()
+                    })
+                });
+                
+                if (!response.ok) {
+                    resultDiv.innerHTML = `<span class="error">❌ Streaming request failed: ${response.status}</span>`;
+                    return;
+                }
+                
+                let chunks = [];
+                let chunkCount = 0;
+                let documentContentFound = false;
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    chunks.push(chunk);
+                    chunkCount++;
+                    
+                    // Check for document content
+                    const chunkLower = chunk.toLowerCase();
+                    if (chunkLower.includes('related documents') || 
+                        chunkLower.includes('📚') || 
+                        chunkLower.includes('mail order')) {
+                        documentContentFound = true;
+                    }
+                    
+                    // Update display with progress
+                    let output = `🌊 Streaming Response (${chunkCount} chunks received):\\n\\n`;
+                    output += chunks.join('');
+                    output += `\\n\\n📊 Analysis:\\n`;
+                    output += `  📄 Document content detected: ${documentContentFound ? '✅ YES' : '❌ NO'}\\n`;
+                    output += `  📈 Total chunks: ${chunkCount}\\n`;
+                    
+                    resultDiv.innerHTML = `<span class="success">${output}</span>`;
+                }
+                
+                // Final summary
+                let finalOutput = `✅ Streaming Complete (${chunkCount} chunks):\\n\\n`;
+                finalOutput += chunks.join('');
+                finalOutput += `\\n\\n📊 Final Analysis:\\n`;
+                finalOutput += `  📄 Document content detected: ${documentContentFound ? '✅ YES' : '❌ NO'}\\n`;
+                finalOutput += `  📈 Total chunks: ${chunkCount}\\n`;
+                finalOutput += `  📏 Total content length: ${chunks.join('').length} characters\\n`;
+                
+                resultDiv.innerHTML = `<span class="success">${finalOutput}</span>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Streaming error: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

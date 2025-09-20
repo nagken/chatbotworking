@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVS Pharmacy - Quick API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #c8102e;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #a00e26;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+        .warning { border-left: 4px solid #ffc107; }
+        input[type="text"] {
+            width: 300px;
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏥 CVS Pharmacy Knowledge Assist - API Test</h1>
+    
+    <div class="test-section">
+        <h3>1. Server Health Check</h3>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <div id="healthResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Document Search Test</h3>
+        <input type="text" id="searchQuery" value="contraceptive coverage" placeholder="Enter search query">
+        <button onclick="testDocumentSearch()">Search Documents</button>
+        <div id="searchResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Chat API Test</h3>
+        <input type="text" id="chatMessage" value="What is contraceptive coverage?" placeholder="Enter chat message">
+        <button onclick="testChat()">Send Chat Message</button>
+        <div id="chatResult" class="result"></div>
+    </div>
+
+    <script>
+        // Try different ports to find the server
+        const POSSIBLE_PORTS = [5000, 8000, 3000, 8080];
+        let serverPort = null;
+
+        async function findServer() {
+            if (serverPort) return serverPort;
+            
+            for (const port of POSSIBLE_PORTS) {
+                try {
+                    const response = await fetch(`http://localhost:${port}/api/health`, {
+                        method: 'GET',
+                        timeout: 3000
+                    });
+                    if (response.ok) {
+                        serverPort = port;
+                        return port;
+                    }
+                } catch (e) {
+                    // Continue trying
+                }
+            }
+            throw new Error('Server not found on any common port');
+        }
+
+        async function testHealth() {
+            const resultDiv = document.getElementById('healthResult');
+            resultDiv.textContent = 'Testing server health...';
+            resultDiv.className = 'result warning';
+
+            try {
+                const port = await findServer();
+                const response = await fetch(`http://localhost:${port}/api/health`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.textContent = `✅ Server healthy on port ${port}\nResponse: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Health check failed: ${response.status}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testDocumentSearch() {
+            const resultDiv = document.getElementById('searchResult');
+            const query = document.getElementById('searchQuery').value;
+            
+            resultDiv.textContent = 'Searching documents...';
+            resultDiv.className = 'result warning';
+
+            try {
+                const port = await findServer();
+                const url = `http://localhost:${port}/api/documents/search?query=${encodeURIComponent(query)}`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const results = data.results || data; // Handle both formats
+                    let resultText = `✅ Document search successful (${results.length} results)\n\n`;
+                    
+                    if (results.length > 0) {
+                        results.slice(0, 3).forEach((doc, i) => {
+                            resultText += `${i + 1}. ${doc.filename || 'Unknown'}\n`;
+                            resultText += `   Score: ${doc.relevance_score || 'N/A'}\n`;
+                            if (doc.snippet) {
+                                resultText += `   Snippet: ${doc.snippet.substring(0, 100)}...\n`;
+                            }
+                            resultText += '\n';
+                        });
+                    } else {
+                        resultText += 'No documents found for this query.';
+                    }
+                    
+                    resultDiv.textContent = resultText;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Search failed: ${response.status}\n${await response.text()}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testChat() {
+            const resultDiv = document.getElementById('chatResult');
+            const message = document.getElementById('chatMessage').value;
+            
+            resultDiv.textContent = 'Sending chat message...';
+            resultDiv.className = 'result warning';
+
+            try {
+                const port = await findServer();
+                const url = `http://localhost:${port}/api/chat`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add any auth headers if needed
+                        'X-Session-Token': localStorage.getItem('session_token') || ''
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversation_id: 'test_' + Date.now()
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    let resultText = `✅ Chat response received\n\n`;
+                    resultText += `Response: ${data.assistant_response}\n\n`;
+                    
+                    if (data.assistant_response.includes('Related Documents')) {
+                        resultText += '🎉 SUCCESS: Response includes document search results!';
+                    } else {
+                        resultText += '⚠️  WARNING: Response does NOT include document search results.';
+                    }
+                    
+                    resultDiv.textContent = resultText;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Chat failed: ${response.status}\n${await response.text()}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // Auto-test health on page load
+        window.onload = () => {
+            testHealth();
+        };
+    </script>
+</body>
+</html>

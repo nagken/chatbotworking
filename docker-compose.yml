@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  pss-knowledge-assist:
+    build: .
+    container_name: pss-knowledge-assist
+    ports:
+      - "8080:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=production
+      - DEBUG_MODE=false
+      - SECRET_KEY=pss-knowledge-assist-secret-key-change-in-production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      # Optional: Mount logs directory for persistence
+      - ./logs:/app/logs
+    networks:
+      - pss-network
+
+  # Optional: Add PostgreSQL if you want to use real database
+  # postgres:
+  #   image: postgres:15
+  #   container_name: pss-postgres
+  #   environment:
+  #     POSTGRES_DB: pss_knowledge_assist
+  #     POSTGRES_USER: pss_user
+  #     POSTGRES_PASSWORD: pss_password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - pss-network
+
+networks:
+  pss-network:
+    driver: bridge
+
+# volumes:
+#   postgres_data:

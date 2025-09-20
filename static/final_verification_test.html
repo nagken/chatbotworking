@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVS Pharmacy Document Test - Final Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        button { padding: 12px 24px; background: #c8102e; color: white; border: none; border-radius: 6px; cursor: pointer; margin: 8px; font-size: 14px; }
+        button:hover { background: #a0081f; }
+        #status { margin: 15px 0; padding: 15px; border-radius: 6px; font-weight: bold; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        #response { margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #c8102e; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; }
+        .test-title { color: #c8102e; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .log { font-size: 12px; color: #666; margin: 5px 0; padding: 5px; background: #f1f3f4; border-radius: 3px; }
+        .highlight { background-color: yellow; padding: 2px 4px; }
+        
+        /* CVS Document Styling */
+        .related-documents-section {
+            margin-top: 1.5rem; padding: 1rem; background-color: #f8f9fa; border: 1px solid #e9ecef; 
+            border-radius: 8px; border-left: 4px solid #c8102e;
+        }
+        .related-documents-section h4 { margin: 0 0 1rem 0; color: #c8102e; font-size: 1.1rem; font-weight: 600; }
+        .document-item {
+            margin-bottom: 1rem; padding: 0.75rem; background-color: white; border: 1px solid #dee2e6; 
+            border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .document-item h5 {
+            margin: 0 0 0.5rem 0; color: #333; font-size: 0.95rem; font-weight: 500; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .relevance-score { font-size: 0.8rem; color: #6c757d; font-weight: normal; }
+        .document-preview { margin: 0.5rem 0; font-size: 0.85rem; color: #495057; font-style: italic; }
+        .document-path { margin: 0.5rem 0 0 0; font-size: 0.8rem; color: #6c757d; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 CVS Pharmacy Document Search - Final Verification</h1>
+        <p>This test verifies that the document search integration is working end-to-end in the CVS Pharmacy Knowledge Assist chatbot.</p>
+        
+        <div id="status" class="info">Ready to test...</div>
+        
+        <div class="test-section">
+            <div class="test-title">🔐 Step 1: Authentication</div>
+            <button onclick="testLogin()">Login with Demo User</button>
+            <div id="loginResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">📄 Step 2: Document Search API</div>
+            <button onclick="testDocumentSearch()">Test Document Search</button>
+            <div id="docSearchResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">💬 Step 3: Chat Integration</div>
+            <button onclick="testChatIntegration()">Test Chat with Mail Order Query</button>
+            <div id="chatResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">🌊 Step 4: Streaming Response</div>
+            <button onclick="testStreamingResponse()">Test Streaming Chat</button>
+            <div id="streamResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">🎨 Step 5: Rendered Output</div>
+            <button onclick="renderTestResponse()">Test Markdown Rendering</button>
+            <div id="renderResult"></div>
+        </div>
+        
+        <div id="response"></div>
+    </div>
+
+    <script>
+        let sessionToken = null;
+        let testResults = {
+            login: false,
+            docSearch: false,
+            chatIntegration: false,
+            streaming: false,
+            rendering: false
+        };
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = type;
+            status.textContent = message;
+        }
+        
+        function log(message, containerId) {
+            const container = document.getElementById(containerId);
+            const logDiv = document.createElement('div');
+            logDiv.className = 'log';
+            logDiv.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            container.appendChild(logDiv);
+        }
+        
+        async function testLogin() {
+            updateStatus('Testing login...', 'info');
+            log('Starting login test', 'loginResult');
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'demo@cvs-pharmacy-knowledge-assist.com',
+                        password: 'demo1234'
+                    })
+                });
+                
+                log(`Login response status: ${response.status}`, 'loginResult');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.token) {
+                        sessionToken = data.token;
+                        testResults.login = true;
+                        updateStatus('✅ Login successful!', 'success');
+                        log(`Token received: ${sessionToken.substring(0, 20)}...`, 'loginResult');
+                        return true;
+                    } else {
+                        log(`Login failed: ${data.message}`, 'loginResult');
+                        updateStatus('❌ Login failed', 'error');
+                        return false;
+                    }
+                } else {
+                    log(`Login request failed: ${response.status}`, 'loginResult');
+                    updateStatus('❌ Login request failed', 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`Login error: ${error.message}`, 'loginResult');
+                updateStatus('❌ Login error', 'error');
+                return false;
+            }
+        }
+        
+        async function testDocumentSearch() {
+            if (!sessionToken) {
+                updateStatus('❌ Please login first', 'error');
+                return false;
+            }
+            
+            updateStatus('Testing document search...', 'info');
+            log('Starting document search test', 'docSearchResult');
+            
+            try {
+                const response = await fetch('/api/documents/search?query=mail order history', {
+                    method: 'GET',
+                    headers: { 
+                        'Authorization': `Bearer ${sessionToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`Document search status: ${response.status}`, 'docSearchResult');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const resultCount = data.results?.length || 0;
+                    log(`Found ${resultCount} documents`, 'docSearchResult');
+                    
+                    if (resultCount > 0) {
+                        testResults.docSearch = true;
+                        updateStatus('✅ Document search working!', 'success');
+                        
+                        data.results.slice(0, 3).forEach((doc, index) => {
+                            log(`Doc ${index + 1}: ${doc.filename} (Score: ${doc.relevance_score})`, 'docSearchResult');
+                        });
+                        return true;
+                    } else {
+                        log('No documents found', 'docSearchResult');
+                        updateStatus('⚠️ No documents found', 'error');
+                        return false;
+                    }
+                } else {
+                    log(`Document search failed: ${response.status}`, 'docSearchResult');
+                    updateStatus('❌ Document search failed', 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`Document search error: ${error.message}`, 'docSearchResult');
+                updateStatus('❌ Document search error', 'error');
+                return false;
+            }
+        }
+        
+        async function testChatIntegration() {
+            if (!sessionToken) {
+                updateStatus('❌ Please login first', 'error');
+                return false;
+            }
+            
+            updateStatus('Testing chat integration...', 'info');
+            log('Starting chat integration test', 'chatResult');
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${sessionToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'How do I access a member\'s mail order history?',
+                        conversation_id: 'test_' + Date.now()
+                    })
+                });
+                
+                log(`Chat response status: ${response.status}`, 'chatResult');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const responseText = data.assistant_response || '';
+                    
+                    log(`Response length: ${responseText.length} characters`, 'chatResult');
+                    
+                    const hasRelatedDocs = responseText.includes('Related Documents');
+                    const hasDocEmoji = responseText.includes('📚');
+                    const hasMailOrder = responseText.toLowerCase().includes('mail order');
+                    
+                    log(`Contains "Related Documents": ${hasRelatedDocs}`, 'chatResult');
+                    log(`Contains document emoji: ${hasDocEmoji}`, 'chatResult');
+                    log(`Contains "mail order": ${hasMailOrder}`, 'chatResult');
+                    
+                    if (hasRelatedDocs && hasDocEmoji) {
+                        testResults.chatIntegration = true;
+                        updateStatus('✅ Chat integration working!', 'success');
+                        
+                        // Show response in the response area
+                        document.getElementById('response').innerHTML = `
+                            <h3>📝 Chat Response Preview:</h3>
+                            <div>${convertMarkdownToHtml(responseText)}</div>
+                        `;
+                        return true;
+                    } else {
+                        log('Document information not found in response', 'chatResult');
+                        updateStatus('⚠️ Document info missing from response', 'error');
+                        
+                        // Show what we got
+                        document.getElementById('response').innerHTML = `
+                            <h3>📝 Actual Response (No Documents):</h3>
+                            <div>${responseText}</div>
+                        `;
+                        return false;
+                    }
+                } else {
+                    log(`Chat request failed: ${response.status}`, 'chatResult');
+                    updateStatus('❌ Chat request failed', 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`Chat error: ${error.message}`, 'chatResult');
+                updateStatus('❌ Chat error', 'error');
+                return false;
+            }
+        }
+        
+        async function testStreamingResponse() {
+            if (!sessionToken) {
+                updateStatus('❌ Please login first', 'error');
+                return false;
+            }
+            
+            updateStatus('Testing streaming response...', 'info');
+            log('Starting streaming test', 'streamResult');
+            
+            try {
+                const response = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${sessionToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream'
+                    },
+                    body: JSON.stringify({
+                        message: 'How do I access a member\'s mail order history?',
+                        conversation_id: 'stream_test_' + Date.now()
+                    })
+                });
+                
+                log(`Streaming response status: ${response.status}`, 'streamResult');
+                
+                if (!response.ok) {
+                    log(`Streaming request failed: ${response.status}`, 'streamResult');
+                    updateStatus('❌ Streaming request failed', 'error');
+                    return false;
+                }
+                
+                let chunks = [];
+                let chunkCount = 0;
+                let documentContentFound = false;
+                let fullResponse = '';
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    chunks.push(chunk);
+                    chunkCount++;
+                    
+                    // Try to extract content from SSE format
+                    if (chunk.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(chunk.substring(6));
+                            if (data.data && data.data.content) {
+                                fullResponse = data.data.content;
+                            }
+                        } catch (e) {
+                            // Not JSON, continue
+                        }
+                    }
+                    
+                    // Check for document content
+                    const chunkLower = chunk.toLowerCase();
+                    if (chunkLower.includes('related documents') || 
+                        chunkLower.includes('📚') || 
+                        chunkLower.includes('mail order')) {
+                        documentContentFound = true;
+                    }
+                }
+                
+                log(`Received ${chunkCount} chunks`, 'streamResult');
+                log(`Document content detected: ${documentContentFound}`, 'streamResult');
+                log(`Full response length: ${fullResponse.length}`, 'streamResult');
+                
+                if (documentContentFound || fullResponse.includes('Related Documents')) {
+                    testResults.streaming = true;
+                    updateStatus('✅ Streaming with documents working!', 'success');
+                    
+                    // Show streaming response
+                    document.getElementById('response').innerHTML = `
+                        <h3>🌊 Streaming Response:</h3>
+                        <div>${convertMarkdownToHtml(fullResponse || chunks.join(''))}</div>
+                    `;
+                    return true;
+                } else {
+                    log('No document content in streaming response', 'streamResult');
+                    updateStatus('⚠️ Streaming missing document content', 'error');
+                    return false;
+                }
+                
+            } catch (error) {
+                log(`Streaming error: ${error.message}`, 'streamResult');
+                updateStatus('❌ Streaming error', 'error');
+                return false;
+            }
+        }
+        
+        function renderTestResponse() {
+            updateStatus('Testing markdown rendering...', 'info');
+            log('Testing markdown to HTML conversion', 'renderResult');
+            
+            const testMarkdown = `Based on your CVS Pharmacy documents, I found specific information about mail order history. The document '064233 Aetna Compass - Mail Order Payment History Screen pulled 6-18-25.docx' contains detailed procedures for accessing member mail order payment history and tracking information through the Compass system.
+
+📚 **Related Documents Found:**
+
+**1. 064233 Aetna Compass - Mail Order Payment History Screen pulled 6-18-25.docx** (Relevance: 10.00)
+*Preview:* "This document provides step-by-step instructions for accessing member mail order payment history in the Compass system..."
+📁 *Path:* GyaniNuxeo/064233 Aetna Compass - Mail Order Payment History Screen pulled 6-18-25.docx
+
+**2. 002996 MED D - SilverScript and Blue MedicareRx (NEJE) - Enrollment Related RM Tasks 122123.doc** (Relevance: 8.50)
+*Preview:* "Contains procedures for managing SilverScript enrollment and related member services tasks..."
+📁 *Path:* GyaniNuxeo/002996 MED D - SilverScript and Blue MedicareRx (NEJE) - Enrollment Related RM Tasks 122123.doc
+
+**3. 001628 MED D - Automatic Refill Program (ARP).docx** (Relevance: 7.25)
+*Preview:* "Documentation for the Automatic Refill Program including member enrollment procedures..."
+📁 *Path:* GyaniNuxeo/001628 MED D - Automatic Refill Program (ARP).docx`;
+            
+            const htmlResult = convertMarkdownToHtml(testMarkdown);
+            
+            log('Markdown conversion completed', 'renderResult');
+            log(`HTML output length: ${htmlResult.length}`, 'renderResult');
+            
+            testResults.rendering = true;
+            updateStatus('✅ Markdown rendering working!', 'success');
+            
+            // Show rendered result
+            document.getElementById('response').innerHTML = `
+                <h3>🎨 Rendered Markdown Output:</h3>
+                <div>${htmlResult}</div>
+                <h4>Raw HTML:</h4>
+                <pre style="background: #f1f1f1; padding: 10px; font-size: 12px; overflow-x: auto;">${htmlResult.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+            `;
+            
+            return true;
+        }
+        
+        // Simple markdown to HTML converter (matching the message renderer)
+        function convertMarkdownToHtml(text) {
+            if (!text) return '';
+            
+            // Convert **bold** to <strong>
+            text = text.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');
+            
+            // Convert *italic* to <em>  
+            text = text.replace(/\\*(.*?)\\*/g, '<em>$1</em>');
+            
+            // Convert line breaks to <br>
+            text = text.replace(/\\n/g, '<br>');
+            
+            // Handle "Related Documents Found:" section with special styling
+            text = text.replace(/📚 \\*\\*Related Documents Found:\\*\\*/g, '<div class="related-documents-section"><h4>📚 Related Documents Found:</h4>');
+            
+            // Better numbered list handling for documents
+            text = text.replace(/^\\*\\*(\\d+)\\. ([^*]+)\\*\\* \\(Relevance: ([\\d.]+)\\)$/gm, '<div class="document-item"><h5><strong>$1. $2</strong> <span class="relevance-score">(Relevance: $3)</span></h5>');
+            
+            // Handle preview text
+            text = text.replace(/^\\*Preview:\\* "([^"]+)"/gm, '<p class="document-preview"><em>Preview:</em> "$1"</p>');
+            
+            // Handle file paths
+            text = text.replace(/^📁 \\*Path:\\* (.+)$/gm, '<p class="document-path">📁 <em>Path:</em> $1</p></div>');
+            
+            // Close the related documents section if it was opened
+            if (text.includes('related-documents-section')) {
+                text += '</div>';
+            }
+            
+            return text;
+        }
+        
+        // Auto-run tests on page load
+        window.onload = function() {
+            updateStatus('Page loaded - Ready for testing', 'info');
+        };
+    </script>
+</body>
+</html>

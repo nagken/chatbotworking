@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVS Pharmacy Knowledge Assist - Streaming Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .response-area {
+            min-height: 200px;
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        button {
+            background: #cc0000;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .log-area {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏥 CVS Pharmacy Knowledge Assist - Streaming Test</h1>
+    
+    <div class="test-container">
+        <h3>Quick Tests</h3>
+        <button onclick="testBasicStream()">Test: Prescription Refill</button>
+        <button onclick="testMedicareQuestion()">Test: Medicare Question</button>
+        <button onclick="testDocumentSearch()">Test: Document Search</button>
+        <button onclick="clearAll()">Clear All</button>
+    </div>
+    
+    <div class="test-container">
+        <h3>Response Output</h3>
+        <div id="responseArea" class="response-area">Click a test button to see streaming response...</div>
+    </div>
+    
+    <div class="test-container">
+        <h3>Debug Log</h3>
+        <div id="logArea" class="log-area">Waiting for test...</div>
+    </div>
+
+    <script>
+        let logArea = document.getElementById('logArea');
+        let responseArea = document.getElementById('responseArea');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.innerHTML += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+        
+        function clearAll() {
+            logArea.innerHTML = 'Cleared.\n';
+            responseArea.innerHTML = 'Ready for next test...';
+        }
+        
+        async function testBasicStream() {
+            log('Starting prescription refill test...');
+            await testStream('How do I process a prescription refill for a member?');
+        }
+        
+        async function testMedicareQuestion() {
+            log('Starting Medicare question test...');
+            await testStream('What is the process for Medicare Part D prior authorization?');
+        }
+        
+        async function testDocumentSearch() {
+            log('Starting document search test...');
+            await testStream('How do I help a member with automatic refill enrollment?');
+        }
+        
+        async function testStream(message) {
+            responseArea.innerHTML = 'Starting stream...\n';
+            log(`Testing message: "${message}"`);
+            
+            try {
+                const response = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream',
+                        'Authorization': 'Bearer fake-token-for-testing'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversation_id: null
+                    })
+                });
+                
+                log(`Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                log('Starting to read stream...');
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let messageCount = 0;
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) {
+                        log('Stream completed by server');
+                        break;
+                    }
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    buffer += chunk;
+                    
+                    // Process complete SSE messages
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.substring(6));
+                                messageCount++;
+                                
+                                log(`Message ${messageCount}: ${data.type} - ${JSON.stringify(data).substring(0, 100)}...`);
+                                
+                                if (data.type === 'system_message' && data.message_type === 'text_response') {
+                                    responseArea.innerHTML = data.data.content;
+                                    
+                                    if (data.data.is_final) {
+                                        log('Final message received!');
+                                    }
+                                }
+                            } catch (e) {
+                                log(`ERROR parsing message: ${e.message}`);
+                                log(`Raw line: ${line}`);
+                            }
+                        }
+                    }
+                }
+                
+                log(`Stream completed. Total messages: ${messageCount}`);
+                
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+                responseArea.innerHTML = `Error: ${error.message}`;
+            }
+        }
+        
+        log('Test page loaded. Ready for streaming tests.');
+    </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Search Test</title>
+</head>
+<body>
+    <h1>CVS Pharmacy Document Search Test</h1>
+    
+    <button onclick="testSearch()">Test "contraceptive coverage" Search</button>
+    <div id="results"></div>
+    
+    <script>
+        async function testSearch() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Testing...';
+            
+            try {
+                // Step 1: Login
+                const loginResponse = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@cvs-pharmacy-knowledge-assist.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (!loginResponse.ok) {
+                    resultsDiv.innerHTML = `Login failed: ${loginResponse.status}`;
+                    return;
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+                
+                // Step 2: Search
+                const searchResponse = await fetch('/api/documents/search?query=contraceptive%20coverage&limit=5', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!searchResponse.ok) {
+                    resultsDiv.innerHTML = `Search failed: ${searchResponse.status}`;
+                    return;
+                }
+                
+                const searchData = await searchResponse.json();
+                
+                let html = `<h2>Search Results for "contraceptive coverage"</h2>`;
+                html += `<p>Total results: ${searchData.total_results}</p>`;
+                
+                if (searchData.results && searchData.results.length > 0) {
+                    html += '<ul>';
+                    searchData.results.forEach((doc, i) => {
+                        html += `
+                            <li>
+                                <strong>${doc.filename || 'Unknown'}</strong><br>
+                                Score: ${(doc.score || 0).toFixed(3)}<br>
+                                Snippet: "${doc.snippet || 'No snippet'}"<br>
+                                Path: ${doc.file_path || 'Unknown'}
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p>No results found</p>';
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

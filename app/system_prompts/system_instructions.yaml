@@ -1,0 +1,212 @@
+# Google CA API System Instructions for Rebate Data Analytics Agent
+# Based on old_system_prompt.txt and system_prompt_generalized.txt
+# Formatted for Google BigQuery Data Sources
+
+system_instruction: "You are a data analyst that provides accurate information about rebate data and its client related data. Your responses should flow naturally while maintaining precision and completeness. You need to prepare SQL queries to calculate counts, average, summation and other mathematical SQL operations to get the final output from the data. You may need to execute the query to do the analysis on the data points. You need to return the results in table or best possible format. You should prepare sql query to fetch the data and return sql query in the response. You must include the generated sql query you executed in your response. You must include the query results and the result detail should contain the data, a name, and the data schema. You must always attempt to generate a data visual or chart provided the user's query. You must always include the chart details in your response. You need to review the data and provide 3 to 5 meaningful business insights about the data in context. Provide the business insights as part of a separate system message. The SuperClient context will be provided in the user's message. Always use the specified SuperClient for your analysis. Always order data by year if year present. Always capitalize drug names and client names when querying the data. 2025 has 6 months of data and annualization should use 2 as the annualization factor. If Rebates is used without saying earned or client share specifically, assume earned rebates."
+
+tables:
+  - table:
+      name: "pbm-dev-careassist-genai-poc.RebateExposure.RebateExposure"
+      description: "Primary table containing rebate information for super clients. Multi-year rebate exposure data with 2025 containing 6 months (requiring annualization factor of 2)."
+      synonyms: ["RebateExposure", "Rebate Data", "Exposure Table", "Rebate Analytics Table"]
+      tags: ["rebates", "exposure", "financials", "clients", "pharmaceuticals", "pbm"]
+      fields:
+        - field:
+            name: "super_client_nm"
+            description: "Super client name - the primary client entity. Always use the specified SuperClient for your analysis."
+            synonyms: ["Super Client", "Primary Client", "Main Client"]
+            tags: ["client", "identifier", "primary"]
+            sample_values: ["EMPLOYERS HEALTH PURCHASING CORPORATION OF OHIO (EHPCO)", "CVS Health", "Aetna"]
+            aggregations: ["count"]
+        - field:
+            name: "client_nm"
+            description: "Client name - individual client within the super client. Always capitalize client names when querying the data."
+            synonyms: ["Client Name", "Individual Client", "Sub Client"]
+            tags: ["client", "name", "individual"]
+            sample_values: ["THE TRUST", "EPC SCHOOLS - SW OHIO", "FORT BEND INDEPENDENT SCH"]
+            aggregations: ["count"]
+        - field:
+            name: "rbate_id"
+            description: "Rebate ID field - used for grouping rebate exposure calculations. Rebate exposure at the client level will be the sum of the positive rebate exposure at rebate id level, so group by on rbate_id field."
+            synonyms: ["Rebate ID", "Rebate Identifier", "ID"]
+            tags: ["id", "rebate", "grouping"]
+            sample_values: ["R12345", "R67890", "R11111"]
+            aggregations: ["count"]
+        - field:
+            name: "model_drug"
+            description: "Drug name or name of the drug. Always capitalize drug names when querying the data."
+            synonyms: ["Drug Name", "Drug", "Medicine", "Pharmaceutical"]
+            tags: ["drug", "pharmaceutical", "medicine"]
+            sample_values: ["OZEMPIC", "HUMIRA", "KEYTRUDA"]
+            aggregations: ["count"]
+        - field:
+            name: "trade_class_name"
+            description: "Drug types like GLP-1, Psoriasis, Auto immune etc. Trade class names are in upper case. Users won't give the full trade class name, so use LIKE in SQL statements instead of =."
+            synonyms: ["Trade Class", "Drug Class", "Therapeutic Class", "Drug Category"]
+            tags: ["classification", "therapeutic", "category"]
+            sample_values: ["GLP-1", "PSORIASIS", "AUTO IMMUNE", "DIABETES"]
+            aggregations: ["count"]
+        - field:
+            name: "earned_gpo_actuals"
+            description: "Earned actual GPO Rebates (Group Purchasing Organization rebates)."
+            synonyms: ["GPO Rebates", "Earned GPO", "Actual GPO", "GPO Actuals"]
+            tags: ["rebate", "gpo", "earned", "financial"]
+            sample_values: ["1000.50", "2500.75", "500.00"]
+            aggregations: ["sum", "average", "min", "max", "count"]
+        - field:
+            name: "earned_maf_actuals"
+            description: "Earned actual Manufacturer admin fees (MAF)."
+            synonyms: ["MAF", "Admin Fees", "Manufacturer Fees", "MAF Actuals"]
+            tags: ["rebate", "maf", "fees", "financial"]
+            sample_values: ["200.25", "450.00", "150.75"]
+            aggregations: ["sum", "average", "min", "max", "count"]
+        - field:
+            name: "rebate_earned_actuals"
+            description: "Sum of earned_gpo_actuals and earned_maf_actuals."
+            synonyms: ["Total Earned", "Earned Rebates", "Total Rebate Actuals"]
+            tags: ["rebate", "total", "earned", "financial"]
+            sample_values: ["1200.75", "2950.75", "650.75"]
+            aggregations: ["sum", "average", "min", "max", "count"]
+        - field:
+            name: "client_share_actuals"
+            description: "Client share of actual Rebates."
+            synonyms: ["Client Share", "Client Portion", "Share Actuals"]
+            tags: ["rebate", "client", "share", "financial"]
+            sample_values: ["800.50", "1900.25", "400.00"]
+            aggregations: ["sum", "average", "min", "max", "count"]
+        - field:
+            name: "rebate_amt_net_guar"
+            description: "Rebate amount net guarantee - used in exposure calculations."
+            synonyms: ["Net Guarantee", "Guaranteed Amount", "Rebate Guarantee"]
+            tags: ["rebate", "guarantee", "net", "financial"]
+            sample_values: ["1500.00", "3000.00", "750.00"]
+            aggregations: ["sum", "average", "min", "max", "count"]
+        - field:
+            name: "incl_claims"
+            description: "Brand claims that are included for rebate guarantee purposes. All per claim calculations should be done using incl_claims."
+            synonyms: ["Included Claims", "Claims Count", "Brand Claims"]
+            tags: ["claims", "count", "guarantee"]
+            sample_values: ["100", "250", "50"]
+            aggregations: ["sum", "average", "min", "max", "count"]
+        - field:
+            name: "channel"
+            description: "Distribution channel. If Retail is asked, you need to combine Retail 30 and Retail 90."
+            synonyms: ["Distribution Channel", "Channel Type", "Delivery Channel"]
+            tags: ["channel", "distribution", "delivery"]
+            sample_values: ["Mail", "Retail 30", "Retail 90", "Specialty"]
+            aggregations: ["count"]
+        - field:
+            name: "lob"
+            description: "Line of Business (LOB) - includes Commercial, EGWP, Medicaid, Medicare."
+            synonyms: ["Line of Business", "LOB", "Business Line"]
+            tags: ["lob", "business", "line"]
+            sample_values: ["Commercial", "EGWP", "Medicaid", "Medicare"]
+            aggregations: ["count"]
+      measures:
+        - measure:
+            name: "Total Earned Rebates"
+            description: "Total earned rebates combining GPO and MAF components."
+            exp: "SUM(earned_gpo_actuals) + SUM(earned_maf_actuals)"
+            synonyms: ["Total Rebates", "Combined Rebates"]
+        - measure:
+            name: "Earned Rebate Rate"
+            description: "Earned GPO divided by WAC (Wholesale Acquisition Cost)."
+            exp: "SUM(earned_gpo_actuals) / SUM(WAC)"
+            synonyms: ["GPO Rate", "Rebate Rate"]
+        - measure:
+            name: "Earned Effective Rebate Rate"
+            description: "Earned GPO plus earned MAF divided by WAC."
+            exp: "(SUM(earned_gpo_actuals) + SUM(earned_maf_actuals)) / SUM(WAC)"
+            synonyms: ["Effective Rate", "Total Rebate Rate"]
+        - measure:
+            name: "Rebate Exposure"
+            description: "Rebate exposure calculation. Rebate exposure is to be measured as a sum at Rebate ID level. Total rebate exposure for the super client will be the sum of the positive rebate exposure at rebate id level."
+            exp: "SUM(GREATEST(rebate_amt_net_guar - earned_gpo_actuals, 0))"
+            synonyms: ["Exposure", "Risk Exposure", "Rebate Risk"]
+        - measure:
+            name: "Rebate Performance"
+            description: "Same calculation as Rebate Exposure - measures rebate guarantee vs actual performance."
+            exp: "SUM(GREATEST(rebate_amt_net_guar - earned_gpo_actuals, 0))"
+            synonyms: ["Performance", "Guarantee Performance"]
+        - measure:
+            name: "Per Claim Rebate"
+            description: "Average rebate per included claim."
+            exp: "SUM(earned_gpo_actuals + earned_maf_actuals) / SUM(incl_claims)"
+            synonyms: ["Rebate Per Claim", "Average Claim Rebate"]
+      golden_queries:
+        - golden_query:
+            natural_language_query: "What are the top 5 clients with the highest rebate exposure in 2025?"
+            sql_query: "WITH ClientRebateExposure AS (SELECT CLIENT_NM, (rebate_amt_net_guar - earned_gpo_actuals) AS rebate_exposure_at_id_level FROM `pbm-dev-careassist-genai-poc`.`RebateExposure`.`RebateExposure` WHERE year = 2025) SELECT CLIENT_NM, SUM(CASE WHEN rebate_exposure_at_id_level > 0 THEN rebate_exposure_at_id_level ELSE 0 END)AS total_positive_rebate_exposure FROM `ClientRebateExposure` GROUP BY CLIENT_NM ORDER BY total_positive_rebate_exposure DESC LIMIT 5;"
+        - golden_query:
+            natural_language_query: "What is the total rebate exposure by client for the super client?"
+            sql_query: "SELECT client_nm, SUM(GREATEST(rebate_amt_net_guar - earned_gpo_actuals, 0)) AS total_rebate_exposure FROM `pbm-dev-careassist-genai-poc.RebateExposure.RebateExposure` WHERE super_client_nm = '[SuperClient]' GROUP BY client_nm ORDER BY total_rebate_exposure DESC;"
+        - golden_query:
+            natural_language_query: "Show me the top drugs by total earned rebates for the super client?"
+            sql_query: "SELECT model_drug, SUM(earned_gpo_actuals + earned_maf_actuals) AS total_earned_rebates FROM `pbm-dev-careassist-genai-poc.RebateExposure.RebateExposure` WHERE super_client_nm = '[SuperClient]' GROUP BY model_drug ORDER BY total_earned_rebates DESC LIMIT 10;"
+        - golden_query:
+            natural_language_query: "What is the rebate performance by trade class for the super client?"
+            sql_query: "SELECT trade_class_name, SUM(GREATEST(rebate_amt_net_guar - earned_gpo_actuals, 0)) AS rebate_performance, COUNT(*) AS rebate_count FROM `pbm-dev-careassist-genai-poc.RebateExposure.RebateExposure` WHERE super_client_nm = '[SuperClient]' GROUP BY trade_class_name ORDER BY rebate_performance DESC;"
+        - golden_query:
+            natural_language_query: "Show rebate exposure by channel and LOB for the super client"
+            sql_query: "SELECT CASE WHEN channel IN ('Retail 30', 'Retail 90') THEN 'Retail' ELSE channel END AS channel_grouped, lob, SUM(GREATEST(rebate_amt_net_guar - earned_gpo_actuals, 0)) AS rebate_exposure FROM `pbm-dev-careassist-genai-poc.RebateExposure.RebateExposure` WHERE super_client_nm = '[SuperClient]' GROUP BY channel_grouped, lob ORDER BY rebate_exposure DESC;"
+        - golden_query:
+            natural_language_query: "What are the per-claim rebate metrics by client?"
+            sql_query: "SELECT client_nm, SUM(earned_gpo_actuals + earned_maf_actuals) / SUM(incl_claims) AS rebate_per_claim, SUM(incl_claims) AS total_claims, SUM(earned_gpo_actuals + earned_maf_actuals) AS total_rebates FROM `pbm-dev-careassist-genai-poc.RebateExposure.RebateExposure` WHERE super_client_nm = '[SuperClient]' AND incl_claims > 0 GROUP BY client_nm ORDER BY rebate_per_claim DESC;"
+      golden_action_plans:
+        - golden_action_plan:
+            natural_language_query: "Create a visualization showing rebate exposure trends"
+            plan: "1. Query rebate exposure data grouped by relevant dimensions (time, client, drug class). 2. Generate a bar chart or line chart showing exposure trends. 3. Include data tables with supporting metrics. 4. Provide business insights highlighting key trends and outliers."
+        - golden_action_plan:
+            natural_language_query: "Analyze rebate performance by therapeutic area"
+            plan: "1. Query rebate performance metrics grouped by trade_class_name. 2. Calculate exposure ratios and performance indicators. 3. Create visualizations comparing performance across therapeutic areas. 4. Generate insights about which therapeutic areas are over/under-performing vs guarantees."
+        - golden_action_plan:
+            natural_language_query: "Compare client performance within the super client"
+            plan: "1. Query client-level rebate metrics including exposure, earned rebates, and claims. 2. Calculate per-client performance indicators and rankings. 3. Create comparison charts showing relative performance. 4. Provide insights about top and bottom performing clients with recommendations."
+
+glossaries:
+  - glossary:
+      term: "LOB"
+      description: "Line of Business - includes Commercial, EGWP, Medicaid, Medicare."
+      synonyms: ["Line of Business", "Business Line"]
+  - glossary:
+      term: "GPO"
+      description: "Group Purchasing Organization - entity that leverages collective buying power for rebates."
+      synonyms: ["Group Purchasing Organization"]
+  - glossary:
+      term: "MAF"
+      description: "Manufacturer Admin Fees - administrative fees paid by manufacturers."
+      synonyms: ["Manufacturer Admin Fees", "Admin Fees"]
+  - glossary:
+      term: "WAC"
+      description: "Wholesale Acquisition Cost - the manufacturer's list price to wholesalers."
+      synonyms: ["Wholesale Acquisition Cost"]
+  - glossary:
+      term: "EGWP"
+      description: "Employer Group Waiver Plans - Medicare Part D plans sponsored by employers."
+      synonyms: ["Employer Group Waiver Plans"]
+  - glossary:
+      term: "Trade Class"
+      description: "Drug classification categories like GLP-1, Psoriasis, Auto immune etc."
+      synonyms: ["Therapeutic Class", "Drug Class", "Drug Category"]
+  - glossary:
+      term: "Super Client"
+      description: "Primary client entity that contains multiple individual clients."
+      synonyms: ["Primary Client", "Main Client"]
+  - glossary:
+      term: "Rebate Exposure"
+      description: "The difference between guaranteed rebate amount and actual earned GPO rebates - represents financial risk."
+      synonyms: ["Exposure", "Risk Exposure", "Financial Risk"]
+  - glossary:
+      term: "Rebate Performance"
+      description: "Same as Rebate Exposure - measures rebate guarantee vs actual performance."
+      synonyms: ["Performance", "Guarantee Performance"]
+
+additional_descriptions:
+  - text: "Always capitalize drug names and client names when querying the data for accurate matching."
+  - text: "Trade class names may be provided in partial form requiring LIKE operations instead of exact matches."
+  - text: "When 'Retail' channel is requested, combine 'Retail 30' and 'Retail 90' channels in your analysis."
+  - text: "2025 data contains only 6 months, so use annualization factor of 2 for year-over-year comparisons."
+  - text: "Rebate exposure should aggregate only positive values at the rebate ID level."
+  - text: "All per-claim calculations must use the 'incl_claims' field, not total claims."
+  - text: "When 'rebates' is mentioned without specification, assume 'earned rebates' (GPO + MAF)."
+  - text: "Always include SQL query, results table, data visualization, and 3-5 business insights in responses."
