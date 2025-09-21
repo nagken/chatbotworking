@@ -1,0 +1,31 @@
+"""
+Test Clear Chat functionality in browser console
+"""
+import time
+print("🧪 Testing Clear Chat from Browser Console")
+print("=" * 50)
+
+print("1. To test Clear Chat functionality:")
+print("   • Open Browser Developer Tools (F12)")
+print("   • Go to Console tab")
+print("   • Run this command:")
+print("")
+print("   // Test Clear Chat Button")
+print("   const clearBtn = document.getElementById('clearAllChatsBtn');")
+print("   console.log('Clear button found:', clearBtn);")
+print("   if (clearBtn) {")
+print("       clearBtn.click();")
+print("   }")
+print("")
+print("2. Expected behavior:")
+print("   • Confirmation dialog should appear")
+print("   • Button should show 'Clearing...' temporarily")
+print("   • Success message or error handling")
+print("   • Conversations list should be cleared")
+print("")
+print("3. The API endpoint is now fixed:")
+print("   • Route ordering corrected (clear-all before {conversation_id})")
+print("   • Authentication headers included")
+print("   • Both database and mock store clearing")
+print("")
+print("✅ Server is ready for testing at http://127.0.0.1:5000")
