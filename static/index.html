@@ -139,13 +139,27 @@
         <div class="conversations-sidebar">
           <div class="sidebar-header">
             <h3><i class="fas fa-comments"></i> Chats</h3>
-            <button id="newConversationBtn" class="new-conversation-btn" title="Start new conversation">
-              <i class="fas fa-plus"></i>
-              <span>New Chat</span>
-            </button>
+            <div class="sidebar-actions">
+              <button id="newConversationBtn" class="new-conversation-btn" title="Start new conversation">
+                <i class="fas fa-plus"></i>
+                <span>New Chat</span>
+              </button>
+              <button id="clearAllChatsBtn" class="clear-chats-btn" title="Clear all conversations">
+                <i class="fas fa-trash-alt"></i>
+                <span>Clear All</span>
+              </button>
+            </div>
           </div>
           <div class="conversations-list" id="conversationsList">
             <div class="conversation-loading"><i class="fas fa-spinner fa-spin"></i> Loading conversations...</div>
+          </div>
+          
+          <!-- Sidebar Footer with Clear History Button -->
+          <div class="sidebar-footer">
+            <button id="clearHistoryBtn" class="clear-history-btn" title="Clear conversation history">
+              <i class="fas fa-broom"></i>
+              <span>Clear History</span>
+            </button>
           </div>
         </div>
 

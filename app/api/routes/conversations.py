@@ -219,6 +219,67 @@ async def create_conversation(
         return mock_conversation
 
 
+@router.delete("/clear-all")
+async def clear_all_conversations(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session_dependency)
+):
+    """
+    Clear all conversations for the current user
+    """
+    try:
+        conversation_service = ConversationService(db)
+        
+        # Get all user conversations first
+        conversation_summaries, total_count = await conversation_service.list_user_conversations(
+            user=current_user,
+            skip=0,
+            limit=1000  # Get all conversations
+        )
+        
+        # Delete each conversation
+        deleted_count = 0
+        for conversation in conversation_summaries:
+            try:
+                await conversation_service.delete_conversation(
+                    conversation_id=conversation.id,
+                    user=current_user
+                )
+                deleted_count += 1
+            except Exception as delete_error:
+                logger.warning(f"Failed to delete conversation {conversation.id}: {delete_error}")
+                # Continue with other conversations
+        
+        # Also clear the mock store for this user
+        if current_user.email in _mock_conversations_store:
+            _mock_conversations_store[current_user.email].clear()
+        
+        logger.info(f"✅ Cleared {deleted_count} conversations for user: {current_user.email}")
+        
+        return {
+            "success": True, 
+            "message": f"Successfully cleared {deleted_count} conversations",
+            "deleted_count": deleted_count
+        }
+        
+    except Exception as e:
+        logger.warning(f"Database unavailable for clearing conversations, clearing mock data: {e}")
+        
+        # Clear mock store for this user
+        cleared_count = 0
+        if current_user.email in _mock_conversations_store:
+            cleared_count = len(_mock_conversations_store[current_user.email])
+            _mock_conversations_store[current_user.email].clear()
+        
+        logger.info(f"📋 Cleared {cleared_count} mock conversations for user: {current_user.email}")
+        
+        return {
+            "success": True,
+            "message": f"Successfully cleared {cleared_count} conversations",
+            "deleted_count": cleared_count
+        }
+
+
 @router.get("/{conversation_id}", response_model=ConversationDetailResponse)
 async def get_conversation(
     conversation_id: str,

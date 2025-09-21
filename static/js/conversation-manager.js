@@ -52,6 +52,8 @@ class ConversationManager {
     initializeElements() {
         this.conversationsList = document.getElementById('conversationsList');
         this.newConversationBtn = document.getElementById('newConversationBtn');
+        this.clearAllChatsBtn = document.getElementById('clearAllChatsBtn');
+        this.clearHistoryBtn = document.getElementById('clearHistoryBtn');
         this.dataAgentSidebar = document.getElementById('dataAgentSidebar');
         this.toggleDataAgentBtn = document.getElementById('toggleDataAgentBtn');
         this.chatMessages = document.getElementById('chatMessages');
@@ -61,6 +63,16 @@ class ConversationManager {
         // New conversation button
         this.newConversationBtn?.addEventListener('click', () => {
             this.startNewConversation();
+        });
+
+        // Clear all chats button
+        this.clearAllChatsBtn?.addEventListener('click', () => {
+            this.clearAllConversations();
+        });
+
+        // Clear history button (same as clear all chats)
+        this.clearHistoryBtn?.addEventListener('click', () => {
+            this.clearAllConversations();
         });
 
         // Data agent sidebar toggle
@@ -278,6 +290,97 @@ class ConversationManager {
         this.expandDataAgentSidebar();
         
         console.log('✅ New conversation interface ready (no conversation ID set until first message)');
+    }
+
+    async clearAllConversations() {
+        console.log('🗑️ ConversationManager.clearAllConversations() called');
+        
+        // Show confirmation dialog
+        const confirmed = confirm('Are you sure you want to clear all conversations? This action cannot be undone.');
+        if (!confirmed) {
+            console.log('❌ Clear all conversations cancelled by user');
+            return;
+        }
+        
+        try {
+            // Show loading state
+            const clearBtn = document.getElementById('clearAllChatsBtn');
+            if (clearBtn) {
+                clearBtn.disabled = true;
+                clearBtn.textContent = 'Clearing...';
+            }
+            
+            console.log('🗑️ Sending request to clear all conversations...');
+            
+            // Get session token for authentication (same method as other functions)
+            const token = this.getSessionToken();
+            if (!token) {
+                throw new Error('Authentication required. Please log in again.');
+            }
+            
+            // Call backend API to clear all conversations
+            const response = await fetch('/api/conversations/clear-all', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            console.log('✅ Clear all conversations response:', result);
+            
+            // Clear local state
+            this.currentConversationId = null;
+            this.conversations = [];
+            
+            // Clear UI elements
+            this.clearChatMessages();
+            await this.loadConversations(); // Reload conversations list
+            this.updateActiveConversation();
+            
+            // Reset to welcome state
+            this.showWelcomeMessage();
+            
+            // Focus chat input
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.focus();
+            }
+            
+            console.log('✅ All conversations cleared successfully');
+            
+            // Show success message
+            alert(`Successfully cleared ${result.deleted_count || 0} conversations!`);
+            
+        } catch (error) {
+            console.error('❌ Error clearing conversations:', error);
+            
+            // More specific error messages
+            let errorMessage = 'Failed to clear conversations. ';
+            if (error.message.includes('Authentication')) {
+                errorMessage += 'Please refresh the page and try again.';
+            } else if (error.message.includes('HTTP 5')) {
+                errorMessage += 'Server error occurred. Please try again.';
+            } else if (error.message.includes('fetch')) {
+                errorMessage += 'Network error. Please check your connection.';
+            } else {
+                errorMessage += `Error: ${error.message}`;
+            }
+            
+            alert(errorMessage);
+        } finally {
+            // Reset button state
+            const clearBtn = document.getElementById('clearAllChatsBtn');
+            if (clearBtn) {
+                clearBtn.disabled = false;
+                clearBtn.textContent = 'Clear All Chats';
+            }
+        }
     }
 
     async switchToConversation(conversationId) {
