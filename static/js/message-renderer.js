@@ -295,11 +295,12 @@ class MessageRenderer {
     }
 
     /**
-     * Render AI insights
+     * Render AI insights with document references
      */
-    renderInsights(insights, assistantMessageContainer) {        
+    renderInsights(insights, assistantMessageContainer, documentReferences = null) {        
         console.log('🧠 Displaying insights in dedicated container...');
         console.log('🔍 Insights content (first 200 chars):', insights ? insights.substring(0, 200) + '...' : 'NULL/UNDEFINED');
+        console.log('🔍 Document references:', documentReferences ? documentReferences.length : 'NONE');
         console.log('🔍 Assistant container:', assistantMessageContainer ? assistantMessageContainer.id || 'no-id' : 'NULL');
         
         if (!assistantMessageContainer) {
@@ -318,10 +319,41 @@ class MessageRenderer {
         // Create AI insights component
         const insightsElement = document.createElement('div');
         insightsElement.className = `ai-insights-container`;
-        insightsElement.innerHTML = `
+        
+        // Build the insights content with document links if available
+        let insightsHTML = `
             <h4>🧠 AI Insights</h4>
             <div class="insights-content">${insights}</div>
         `;
+        
+        // Add document references section if available
+        if (documentReferences && documentReferences.length > 0) {
+            console.log('📎 Adding document references section...');
+            insightsHTML += `
+                <div class="document-references">
+                    <h5>📎 Referenced Documents</h5>
+                    <ul class="document-list">
+            `;
+            
+            documentReferences.forEach(doc => {
+                insightsHTML += `
+                    <li class="document-item">
+                        <a href="${this.escapeHtml(doc.url)}" target="_blank" class="document-link" title="Open ${this.escapeHtml(doc.filename)}">
+                            <span class="doc-icon">📄</span>
+                            <span class="doc-title">${this.escapeHtml(doc.title)}</span>
+                            <span class="doc-type">(${this.escapeHtml(doc.type)})</span>
+                        </a>
+                    </li>
+                `;
+            });
+            
+            insightsHTML += `
+                    </ul>
+                </div>
+            `;
+        }
+        
+        insightsElement.innerHTML = insightsHTML;
         
         console.log('🔍 Created insights element HTML:', insightsElement.outerHTML.substring(0, 300) + '...');
         

@@ -1825,3 +1825,119 @@ body {
     background-color: #155724;
     color: white;
 }
+
+/* ==========================================================================
+   AI INSIGHTS CONTAINER STYLES
+   ========================================================================== */
+
+.ai-insights-container {
+    background-color: var(--pss-white);
+    border: 1px solid var(--pss-medium-grey);
+    border-radius: var(--radius-m);
+    margin: 1rem 0;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+    display: block;
+    visibility: visible;
+}
+
+.ai-insights-container h4 {
+    color: var(--pss-primary);
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: block;
+}
+
+.insights-content {
+    color: var(--pss-text-grey);
+    line-height: 1.6;
+    font-size: 0.95rem;
+    display: block;
+    visibility: visible;
+    overflow: visible;
+}
+
+/* Document references styling */
+.document-references {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--pss-light-grey);
+}
+
+.document-references h5 {
+    color: var(--pss-primary);
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.document-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.document-item {
+    margin-bottom: 0.5rem;
+}
+
+.document-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: var(--pss-very-light-grey);
+    border: 1px solid var(--pss-light-grey);
+    border-radius: var(--radius-s);
+    text-decoration: none;
+    color: var(--pss-primary);
+    transition: all 0.2s ease;
+    gap: 0.5rem;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.document-link:hover {
+    background-color: var(--pss-primary);
+    color: var(--pss-white);
+    border-color: var(--pss-primary);
+    text-decoration: none;
+}
+
+.doc-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.doc-title {
+    font-weight: 500;
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.doc-type {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    flex-shrink: 0;
+}
+
+.insights-content p {
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.insights-content a {
+    color: var(--pss-secondary);
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.insights-content a:hover {
+    color: var(--pss-primary);
+    text-decoration: none;
+}

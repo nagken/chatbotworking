@@ -577,6 +577,7 @@ class StreamingHandler {
                 console.log('✅ Processing AI insights...', data);
                 console.log('🔍 Insights data structure:', JSON.stringify(data, null, 2));
                 console.log('🔍 AI insights content preview:', data.ai_insights ? data.ai_insights.substring(0, 100) + '...' : 'NOT FOUND');
+                console.log('🔍 Document references:', data.document_references ? data.document_references.length : 'NONE');
                 console.log('🔍 Container available:', !!assistantMessageContainer);
                 console.log('🔍 StreamingResult state:', !!streamingResult.ai_insights);
                 
@@ -584,9 +585,14 @@ class StreamingHandler {
                     streamingResult.ai_insights = data.ai_insights;
                     console.log('🧠 AI insights received via streaming - length:', data.ai_insights.length);
                     
-                    // Call renderInsights with proper parameters
-                    const insightsElement = this.messageRenderer.renderInsights(data.ai_insights, assistantMessageContainer);
+                    // Call renderInsights with document references
+                    const insightsElement = this.messageRenderer.renderInsights(
+                        data.ai_insights, 
+                        assistantMessageContainer,
+                        data.document_references || null
+                    );
                     console.log('🎯 Insights element created:', !!insightsElement);
+                    console.log('📎 Document references passed:', data.document_references ? data.document_references.length : 0);
                     
                     // Move thinking indicator to bottom after insights render, then remove it
                     setTimeout(() => {

@@ -93,13 +93,24 @@ async def download_document(file_path: str):
     Download or serve a document file
     """
     try:
+        logger.info(f"🔍 Looking for document: '{file_path}'")
         pdf_service = get_pdf_indexing_service()
+        
+        # Try direct path lookup first
         doc_info = pdf_service.get_document_info(file_path)
+        logger.info(f"📄 Direct lookup result: {doc_info is not None}")
+        
+        # If not found, try filename lookup
+        if not doc_info:
+            doc_info = pdf_service.find_document_by_filename(file_path)
+            logger.info(f"📄 Filename lookup result: {doc_info is not None}")
         
         if not doc_info:
+            logger.warning(f"❌ Document not found: '{file_path}'")
             raise HTTPException(status_code=404, detail="Document not found")
         
         full_path = doc_info['full_path']
+        logger.info(f"✅ Found document: {doc_info['filename']}")
         
         if not os.path.exists(full_path):
             raise HTTPException(status_code=404, detail="Document file not found on disk")

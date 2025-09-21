@@ -450,6 +450,40 @@ class PDFIndexingService:
         """Get information about a specific document"""
         return self.documents_index.get(document_path)
     
+    def find_document_by_filename(self, filename: str) -> Optional[Dict[str, Any]]:
+        """Find document by filename with fuzzy matching"""
+        # Try exact match first
+        for doc_path, doc_info in self.documents_index.items():
+            if doc_info.get('filename') == filename:
+                return doc_info
+        
+        # Try fuzzy matching for common variations
+        filename_lower = filename.lower().strip()
+        
+        for doc_path, doc_info in self.documents_index.items():
+            doc_filename = doc_info.get('filename', '').lower().strip()
+            
+            # Direct substring matching
+            if filename_lower in doc_filename or doc_filename in filename_lower:
+                return doc_info
+            
+            # Remove common prefixes and try again
+            filename_clean = filename_lower.replace('_client support-', '').replace('client support-', '').replace('_', ' ').strip()
+            doc_clean = doc_filename.replace('_client support-', '').replace('client support-', '').replace('_', ' ').strip()
+            
+            if filename_clean in doc_clean or doc_clean in filename_clean:
+                return doc_info
+            
+            # Try key parts matching
+            filename_parts = set(filename_clean.split())
+            doc_parts = set(doc_clean.split())
+            
+            # If most words match, consider it a match
+            if len(filename_parts) > 2 and len(filename_parts.intersection(doc_parts)) >= len(filename_parts) * 0.6:
+                return doc_info
+                
+        return None
+    
     def get_categories(self) -> List[str]:
         """Get all document categories"""
         categories = set()

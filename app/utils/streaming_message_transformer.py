@@ -181,9 +181,10 @@ class StreamingMessageTransformer:
             # Pattern to match document references in the enhanced message context
             # Look for patterns like "Document 1: Title" or mentions of files
             doc_patterns = [
-                r'Document \d+: ([^<\n]+?)(?:\n|<br>|$)',  # "Document 1: Title"
-                r'File: ([^<\n]+\.(?:docx?|pdf|xlsx?|pptx?))',  # "File: filename.docx"
-                r'([^<\n\s]+\.(?:docx?|pdf|xlsx?|pptx?))',  # Any filename with extension
+                r'\(Document \d+: ([^)]+)\)',                            # "(Document 3: filename)" - no extension required
+                r'Document \d+: ([^<\n]+?)(?:\n|<br>|$)',               # "Document 1: Title"
+                r'File: ([^<\n]+\.(?:docx?|pdf|xlsx?|pptx?))',          # "File: filename.docx"
+                r'([^<\n\s]+\.(?:docx?|pdf|xlsx?|pptx?))',              # Any filename with extension
             ]
             
             processed_files = set()  # Avoid duplicate links
@@ -191,7 +192,18 @@ class StreamingMessageTransformer:
             for pattern in doc_patterns:
                 matches = re.finditer(pattern, text, re.IGNORECASE)
                 for match in matches:
-                    if pattern.startswith('Document'):
+                    if pattern.startswith(r'\(Document \d+:'):
+                        # New pattern for "(Document 3: filename)"
+                        filename = match.group(1).strip()
+                        doc_title = filename  # Use filename as title
+                        
+                        # If filename doesn't have an extension, try to find the full filename
+                        if '.' not in filename or not filename.split('.')[-1].lower() in ['pdf', 'doc', 'docx', 'xlsx', 'pptx']:
+                            full_filename = StreamingMessageTransformer._find_full_filename(filename)
+                            if full_filename and full_filename != filename:
+                                filename = full_filename
+                                
+                    elif pattern.startswith('Document'):
                         # Extract title from "Document N: Title" format
                         doc_title = match.group(1).strip()
                         # Look for the corresponding "File:" line
@@ -214,7 +226,7 @@ class StreamingMessageTransformer:
                     
                     # Create document URL (encode the filename for URL safety)
                     encoded_filename = urllib.parse.quote(filename)
-                    document_url = f"/documents/{encoded_filename}"
+                    document_url = f"/api/documents/download/{encoded_filename}"
                     
                     # Add to references
                     document_references.append({
@@ -410,6 +422,41 @@ class StreamingMessageTransformer:
         except Exception as e:
             logger.error(f"Error processing chart with templates in streaming: {e}")
             return None
+
+    @staticmethod
+    def _find_full_filename(partial_filename: str) -> str:
+        """
+        Find the full filename with extension from a partial filename
+        Used when AI responses only include partial document names without extensions
+        """
+        import os
+        
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            gyani_dir = os.path.join(base_dir, 'GyaniNuxeo')
+            
+            if not os.path.exists(gyani_dir):
+                return partial_filename
+            
+            # Look for files that start with or contain the partial filename
+            for filename in os.listdir(gyani_dir):
+                if filename.lower().endswith(('.pdf', '.doc', '.docx', '.xlsx', '.pptx')):
+                    # Check if the partial name matches the filename (case-insensitive)
+                    filename_without_ext = os.path.splitext(filename)[0]
+                    
+                    # Try different matching strategies
+                    if (partial_filename.lower() in filename.lower() or
+                        filename_without_ext.lower() in partial_filename.lower() or
+                        partial_filename.lower() == filename_without_ext.lower()):
+                        
+                        logger.info(f"📁 Found full filename: {partial_filename} -> {filename}")
+                        return filename
+                        
+        except Exception as e:
+            logger.warning(f"⚠️ Error finding full filename for '{partial_filename}': {e}")
+        
+        # Return original if no match found  
+        return partial_filename
 
 
 # Create global instance
