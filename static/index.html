@@ -154,8 +154,23 @@
             <div class="conversation-loading"><i class="fas fa-spinner fa-spin"></i> Loading conversations...</div>
           </div>
           
-          <!-- Sidebar Footer with Clear History Button -->
+          <!-- Sidebar Footer with Clear History Button and Search Mode Toggle -->
           <div class="sidebar-footer">
+            <!-- Search Mode Toggle -->
+            <div class="search-mode-toggle">
+              <label class="toggle-label">
+                <span class="toggle-text">🤖 AI Mode</span>
+                <div class="toggle-switch">
+                  <input type="checkbox" id="searchModeToggle" checked>
+                  <span class="toggle-slider"></span>
+                </div>
+                <span class="toggle-text">🔍 Local</span>
+              </label>
+              <div class="toggle-description" id="searchModeDescription">
+                Using Vertex AI for intelligent responses
+              </div>
+            </div>
+            
             <button id="clearHistoryBtn" class="clear-history-btn" title="Clear conversation history">
               <i class="fas fa-broom"></i>
               <span>Clear History</span>

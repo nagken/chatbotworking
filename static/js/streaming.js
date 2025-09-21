@@ -90,7 +90,12 @@ class StreamingHandler {
             }
 
             // Start Server-Sent Events connection
-            const streamUrl = `${this.getBaseUrl()}/api/chat/stream`;
+            let streamUrl = `${this.getBaseUrl()}/api/chat/stream`;
+            
+            // Check if we should use local search mode
+            if (window.conversationManager && window.conversationManager.useLocalSearch) {
+                streamUrl = `${this.getBaseUrl()}/api/chat/local/stream`;
+            }
             
             // Note: EventSource doesn't support POST, so we need to use fetch with streaming
             const response = await fetch(streamUrl, {

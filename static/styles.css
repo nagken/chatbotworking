@@ -691,12 +691,88 @@ body {
     font-size: 0.9rem;
 }
 
-/* Sidebar Footer with Clear History Button */
+/* Sidebar Footer with Clear History Button and Search Toggle */
 .sidebar-footer {
     padding: 1rem;
     border-top: 1px solid var(--border-light);
     background: var(--background-grey-light);
     margin-top: auto; /* Push to bottom */
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Search Mode Toggle */
+.search-mode-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--cvs-dark-grey);
+}
+
+.toggle-text {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    border-radius: 24px;
+    transition: 0.3s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--cvs-red);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.toggle-description {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+    font-style: italic;
 }
 
 .clear-history-btn {

@@ -54,9 +54,14 @@ class ConversationManager {
         this.newConversationBtn = document.getElementById('newConversationBtn');
         this.clearAllChatsBtn = document.getElementById('clearAllChatsBtn');
         this.clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        this.searchModeToggle = document.getElementById('searchModeToggle');
+        this.searchModeDescription = document.getElementById('searchModeDescription');
         this.dataAgentSidebar = document.getElementById('dataAgentSidebar');
         this.toggleDataAgentBtn = document.getElementById('toggleDataAgentBtn');
         this.chatMessages = document.getElementById('chatMessages');
+        
+        // Initialize search mode state
+        this.isVertexAIMode = true; // Default to Vertex AI
     }
 
     setupEventListeners() {
@@ -73,6 +78,11 @@ class ConversationManager {
         // Clear history button (same as clear all chats)
         this.clearHistoryBtn?.addEventListener('click', () => {
             this.clearAllConversations();
+        });
+
+        // Search mode toggle
+        this.searchModeToggle?.addEventListener('change', (e) => {
+            this.toggleSearchMode(e.target.checked);
         });
 
         // Data agent sidebar toggle
@@ -1148,6 +1158,30 @@ class ConversationManager {
         if (days < 7) return `${days}d ago`;
         
         return date.toLocaleDateString();
+    }
+
+    toggleSearchMode() {
+        const toggle = document.getElementById('searchModeToggle');
+        const description = document.getElementById('searchModeDescription');
+        
+        if (toggle && description) {
+            this.useLocalSearch = toggle.checked;
+            
+            if (this.useLocalSearch) {
+                description.textContent = 'Using local search with instant template responses';
+                console.log('🔄 Switched to local search mode');
+            } else {
+                description.textContent = 'Using AI-powered responses with document search';
+                console.log('🔄 Switched to AI search mode');
+            }
+            
+            // Save preference to localStorage
+            localStorage.setItem('useLocalSearch', this.useLocalSearch.toString());
+        }
+    }
+
+    getChatEndpoint() {
+        return this.useLocalSearch ? '/api/chat/local' : '/api/chat';
     }
 }
 
